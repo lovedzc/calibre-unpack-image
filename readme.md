@@ -20,3 +20,19 @@ calibre-debug -g
 然后设置环境变量
 http_proxy = http://127.0.0.1:8118
 https_proxy=http://127.0.0.1:8118
+
+-----------------------
+
+In order to pure images of AZW3 (that is, fixed Layout of the Kindle book) into a high-quality PDF and write the plug-in.
+The basic idea is that the pictures in AZW3 losslessly disassembled, and then manually call the old horse FreePic2PDF to convert to PDF.
+This plug-in to achieve the function is to split the picture to the specified directory, and in accordance with the title field named each directory.
+Support batch disassembly.
+
+Currently known issues.
+1. some AZW3 files have the cover image file name serial number at the end
+2. the last image in some disassembled images is always the low-resolution cover image
+3. only AZW3 and EPUB are supported, other formats are not supported
+4. The title contains illegal characters such as ": ? *" etc., the processing will be interrupted.
+
+
+Translated with www.DeepL.com/Translator (free version)
