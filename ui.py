@@ -11,8 +11,8 @@ load_translations()
 
 class InterfacePlugin(InterfaceAction):
 
-    name = _('拆图片')
-    action_spec = (_('拆图片'), None, _('Run the Unpack Image Plugin'), (None))
+    name = _('unpack image')
+    action_spec = (_('unpack image'), None, _('Run the Unpack Image Plugin'), (None))
 
     def genesis(self):
         icon = get_icons('images/icon.png')
