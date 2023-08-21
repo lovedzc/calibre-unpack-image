@@ -67,16 +67,19 @@ class UnpackImageDialog(QDialog):
         db = self.db.new_api
         for book_id in ids:
             mi = self.db.get_metadata(book_id, index_is_id=True, get_cover=False)
-            title = mi.get('title')
+            title = mi.get('title') + ' - ' + mi.get('authors')[0]
             if DEBUG: print('title = ' + title)     #TEST
 
             fmts = self.db.formats(book_id, index_is_id=True)
             fmts = fmts.lower().split(',')
 
-            if 'azw3' not in fmts: 
+            if 'azw3' in fmts: 
+                self.unpack_image(book_id, title, 'azw3')
+            # elif 'epub' in fmts: 
+            #     self.unpack_image(book_id, title, 'epub')
+            else:
                 return error_dialog(self.gui, 'Cannot unpack','No azw3 format', show=True)
 
-            self.unpack_image(book_id, title, 'azw3')
 
         MessageBox(MessageBox.INFO, _('搞定'), _("图片拆在 D:/TEST/ ")).exec_()
         return

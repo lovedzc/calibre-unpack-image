@@ -1,0 +1,16 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "calibre-debug",
+            "type": "python",
+            "request": "launch",
+            "program": "${env:CALIBRE_PYTHON_PATH}",
+            "args": [
+                "-g",
+                "-r",
+                "My Plugin"
+            ]
+        }
+    ]
+}
