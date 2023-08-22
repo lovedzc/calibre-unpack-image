@@ -130,6 +130,7 @@ class UnpackImageDialog(QDialog):
         authors = re.sub('[\/:*?"<>|]','_',authors)     # 替换非法字符
 
         newDir = f"{prefs['path']}/{title} - {authors}"
+        # newDir = f"{prefs['path']}/{title}"
         if not os.path.exists(prefs['path']):
             os.mkdir(prefs['path'])
         elif os.path.exists(newDir):
@@ -166,7 +167,7 @@ class UnpackImageDialog(QDialog):
             if os.path.getsize(filepath) >= 20000:
                 images.append(Image.open(filepath)) # 打开图片文件
 
-        images[0].save(newDir+'.PDF', "PDF" , quality=95, append_images=images[1:], subsampling=0,  save_all=True)
+        images[0].save(newDir+'.PDF', "PDF" , quality=95, append_images=images[1:], subsampling=0,  save_all=True, title=title, author=authors, optimize=True)
         shutil.rmtree(oldDir)   # 删除TEMP图片目录
 
         return

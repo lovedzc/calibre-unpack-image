@@ -6,6 +6,7 @@
 1. 只支持AZW3和EPUB，不支持其他格式
 2. PIL的Image库会对图像做处理，导致PDF文件尺寸变大
 3. "Unpack image"这个名字有点名不副实了…
+4. 尚未实现PDF文件自动加入calibre库
 
 顺便记录下 calibre 的调试方法：
 calibre-customize -b "D:\Github\calibre-unpack-image"

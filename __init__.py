@@ -5,7 +5,7 @@ class UnpackImagePlugin(InterfaceActionBase):
     description             = _('Convert fixed azw3/epub to pdf')
     supported_platforms     = ['linux', 'windows']
     author                  = 'DZC'
-    version                 = (0, 4, 0)
+    version                 = (0, 4, 1)
     minimum_calibre_version = (2, 72, 0)
     actual_plugin           = 'calibre_plugins.unpack_image.ui:InterfacePlugin'
 
