@@ -1,11 +1,11 @@
 from calibre.customize import InterfaceActionBase
 
 class UnpackImagePlugin(InterfaceActionBase):
-    name                    = _('Unpack Image')
-    description             = _('Unpack Image')
+    name                    = _('Convert to pdf')
+    description             = _('Convert fixed azw3/epub to pdf')
     supported_platforms     = ['linux', 'windows']
     author                  = 'DZC'
-    version                 = (0, 3, 0)
+    version                 = (0, 4, 0)
     minimum_calibre_version = (2, 72, 0)
     actual_plugin           = 'calibre_plugins.unpack_image.ui:InterfacePlugin'
 

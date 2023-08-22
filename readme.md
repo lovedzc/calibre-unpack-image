@@ -1,14 +1,11 @@
-为了把纯图片的AZW3（也就是固定Layout的Kindle书）转成高质量的PDF而写的插件。
-基本思路是，把AZW3中的图片无损拆解出来，然后手动调用老马的 FreePic2PDF 转成PDF。
-本插件实现的功能就是把图片拆到指定目录下，并以"title - author"的形式命名目录。
+这是为了把纯图片的AZW3（也就是固定Layout的Kindle书）转成高质量的PDF而写的插件。
+基本思路是，把AZW3中的图片无损拆解出来，然后用PIL的Image库转成PDF。
 本插件支持批量拆解。
 
-PS: 老马的 FreePic2PDF 请在下述网站下载：
-    https://www.cnblogs.com/stronghorse/
-
 目前已知的问题：
-1. AZW3文件解压的图片，会多出一张低分辨率的封面
-2. 只支持AZW3和EPUB，不支持其他格式
+1. 只支持AZW3和EPUB，不支持其他格式
+2. PIL的Image库会对图像做处理，导致PDF文件尺寸变大
+3. "Unpack image"这个名字有点名不副实了…
 
 顺便记录下 calibre 的调试方法：
 calibre-customize -b "D:\Github\calibre-unpack-image"
@@ -22,16 +19,13 @@ https_proxy=http://127.0.0.1:8118
 
 -----------------------
 
-In order to pure picture AZW3 (that is, fixed Layout of the Kindle book) into a high-quality PDF and write a plug-in.
-The basic idea is to break down the images in AZW3 losslessly, and then manually call the old horse's FreePic2PDF to PDF.
-The function of this plug-in is to disassemble the picture to the specified directory, and "title - author" in the form of a named directory.
-This plugin supports batch disassembly.
+This is a plug-in written to convert pure image AZW3 (that is, fixed Layout Kindle books) into high-quality PDF.
+The basic idea is to lossless disassemble the images in AZW3, and then use PIL's Image library to PDF.
+This plug-in supports batch disassembly.
 
-PS: Please download Old Ma's FreePic2PDF from the following website:
-    https://www.cnblogs.com/stronghorse/
-
-Currently known problems:
-1. AZW3 file decompression of images, there will be an additional low-resolution cover.
-2. only supports AZW3 and EPUB, does not support other formats.
+Currently known issues:
+1. only supports AZW3 and EPUB, does not support other formats
+2. PIL's Image library will do image processing, resulting in larger PDF file size
+3. "Unpack image" is a bit of a misnomer...
 
 Translated with www.DeepL.com/Translator (free version)

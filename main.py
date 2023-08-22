@@ -19,7 +19,7 @@ class UnpackImageDialog(QDialog):
 
         self.setAttribute(Qt.WA_DeleteOnClose)
 
-        self.setWindowTitle(_('解包图片 Unpack Image'))
+        self.setWindowTitle(_('Convert fixed azw3/epub to pdf'))
         self.setWindowIcon(icon)
 
         self.l = QGridLayout()
@@ -28,7 +28,7 @@ class UnpackImageDialog(QDialog):
         self.image = QLabel()
         self.image.setPixmap(icon.pixmap(120, 120))
 
-        self.unpack_image_button = QPushButton(_('解包图片\nUnpack Image'), self)
+        self.unpack_image_button = QPushButton(_('转换成PDF\nConvert to pdf'), self)
         self.unpack_image_button.clicked.connect(self.on_button_unpack_image)
         self.unpack_image_button.setDefault(True)
         self.unpack_image_button.setToolTip(_('<qt>Start the unpack image process</qt>'))
@@ -39,7 +39,7 @@ class UnpackImageDialog(QDialog):
         self.unpack_path_button.clicked.connect(self.select_path)
 
         self.unpack_warning = QLabel(self)
-        self.unpack_warning.setText('解包时会自动删除路径下的原有文件！\nThe original files in the path will be deleted automatically!')
+        # self.unpack_warning.setText('解包时会自动删除路径下的原有文件！\nThe original files in the path will be deleted automatically!')
         self.unpack_warning.setStyleSheet('color:red')
 
         self.l.addWidget(self.image, 1, 1, 4, 1, Qt.AlignVCenter)
@@ -138,18 +138,36 @@ class UnpackImageDialog(QDialog):
         # 生成原始路径
         if fmt == 'azw3':       # 处理 azw3 格式
             oldDir = tdir + '/images'
-            if DEBUG: print(_(f'[azw3] Moving images from \n {oldDir} \nto \n {newDir}'))
-            shutil.move(oldDir, newDir)
+            # shutil.move(oldDir, newDir)       # 直接从temp目录生成PDF，因而这个移动操作就不要了
 
         elif fmt == 'epub':     # 处理 epub 格式
             oldDir = tdir + '/OEBPS/Images'
             if not os.path.exists(oldDir):
                 oldDir = tdir + '/Images'       # 有的eoub格式，图片不在/OEBPS/Images/，而是直接在/Images/
 
-            if DEBUG: print(_(f'[epub] Moving images from \n {oldDir} \nto \n {newDir}'))
-            shutil.move(oldDir, newDir)
             if os.path.exists(tdir+'/cover.jpeg'):
-                shutil.move(tdir+'/cover.jpeg', newDir+'/00000.jpeg')
+                shutil.move(tdir+'/cover.jpeg', tdir+'/00000.jpeg')
+
+            # shutil.move(oldDir, newDir)       # 直接从temp目录生成PDF，因而这个移动操作就不要了
+            # if os.path.exists(tdir+'/cover.jpeg'):
+            #     shutil.move(tdir+'/cover.jpeg', newDir+'/00000.jpeg')
+
+        if DEBUG: print(_(f'[epub] Moving images from \n {oldDir} \nto \n {newDir}'))
+
+        # ---------------------------------------
+        # 以下，将图片转成PDF
+        from PIL import Image
+
+        imagelist = os.listdir(oldDir)
+        images = []
+        for f in imagelist:
+            filepath = f'{oldDir}/{f}'
+            if DEBUG: print(_(f'{f} size = {os.path.getsize(filepath)}'))    # DEBUG文件的尺寸
+            if os.path.getsize(filepath) >= 20000:
+                images.append(Image.open(filepath)) # 打开图片文件
+
+        images[0].save(newDir+'.PDF', "PDF" , quality=95, append_images=images[1:], subsampling=0,  save_all=True)
+        shutil.rmtree(oldDir)   # 删除TEMP图片目录
 
         return
 
