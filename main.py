@@ -19,7 +19,7 @@ class UnpackImageDialog(QDialog):
 
         self.setAttribute(Qt.WA_DeleteOnClose)
 
-        self.setWindowTitle(_('Unpack Image'))
+        self.setWindowTitle(_('解包图片 Unpack Image'))
         self.setWindowIcon(icon)
 
         self.l = QGridLayout()
@@ -28,18 +28,23 @@ class UnpackImageDialog(QDialog):
         self.image = QLabel()
         self.image.setPixmap(icon.pixmap(120, 120))
 
-        self.unpack_image_button = QPushButton(_('Unpack Image'), self)
+        self.unpack_image_button = QPushButton(_('解包图片\nUnpack Image'), self)
         self.unpack_image_button.clicked.connect(self.on_button_unpack_image)
         self.unpack_image_button.setDefault(True)
         self.unpack_image_button.setToolTip(_('<qt>Start the unpack image process</qt>'))
 
         self.unpack_path_textbox = QLineEdit(self)
         self.unpack_path_textbox.setText(prefs['path'])
-        self.unpack_path_button = QPushButton(_('Dir'), self)
+        self.unpack_path_button = QPushButton(_('Select path'), self)
         self.unpack_path_button.clicked.connect(self.select_path)
+
+        self.unpack_warning = QLabel(self)
+        self.unpack_warning.setText('解包时会自动删除路径下的原有文件！\nThe original files in the path will be deleted automatically!')
+        self.unpack_warning.setStyleSheet('color:red')
 
         self.l.addWidget(self.image, 1, 1, 4, 1, Qt.AlignVCenter)
         self.l.addWidget(self.unpack_image_button, 1, 2, 1, 1, Qt.AlignVCenter)
+        self.l.addWidget(self.unpack_warning, 1, 3, 1, 2, Qt.AlignVCenter)
         self.l.addWidget(self.unpack_path_textbox, 3, 2, 1, 2, Qt.AlignVCenter)
         self.l.addWidget(self.unpack_path_button, 3, 4, Qt.AlignVCenter)
 
@@ -57,8 +62,9 @@ class UnpackImageDialog(QDialog):
 
     def select_path(self):
             path = QFileDialog.getExistingDirectory(None,"Select unpack dir", self.unpack_path_textbox.text())  # 起始路径
-            self.unpack_path_textbox.setText(path)
-            prefs['path'] = path 
+            if path != '':
+                self.unpack_path_textbox.setText(path)
+                prefs['path'] = path 
 
     def on_button_unpack_image(self):
         from calibre.gui2 import error_dialog
@@ -90,11 +96,12 @@ class UnpackImageDialog(QDialog):
                 self.unpack_image(book_id, title, authors[0], fmts[0])
                 print("Unpacked : " + title)
             except:
-                print('')
-                print('--- ERROR --- ' + title)
-                MessageBox(MessageBox.INFO, _('Error'), title).exec_()
+                import traceback
+                error_dialog(self.gui, _('Failed to magnify fonts'), _(
+                    'Failed to magnify fonts, click "Show details" for more info'),
+                    det_msg=traceback.format_exc(), show=True)
 
-        MessageBox(MessageBox.INFO, _('OK'), _("It's all settled!")).exec_()
+        MessageBox(MessageBox.INFO, _('OK'), _("Images are unpacked successfully.")).exec_()
         return
 
     def unpack_image(self, book_id, title, authors, fmt):
@@ -112,23 +119,37 @@ class UnpackImageDialog(QDialog):
         exploder = get_tools(fmt)[0]
         if (exploder == None): return (None, None)
         opf = exploder(book_file, tdir)
+
+        prefs['path'] = self.unpack_path_textbox.text()     # 输出路径，以路径框中的最终内容为准，这是为了处理用户手动修改路径框的内容
         
         import shutil
         import os
-        # 生成目的路径
-        newDir = f'D:/TEST/{title} - {authors}'
+        import re
+
+        title = re.sub('[\/:*?"<>|]','_',title)         # 替换非法字符
+        authors = re.sub('[\/:*?"<>|]','_',authors)     # 替换非法字符
+
+        newDir = f"{prefs['path']}/{title} - {authors}"
+        if not os.path.exists(prefs['path']):
+            os.mkdir(prefs['path'])
+        elif os.path.exists(newDir):
+            shutil.rmtree(newDir)   # 先删除原有的文件(目录)
+
         # 生成原始路径
-        if fmt == 'azw3':
+        if fmt == 'azw3':       # 处理 azw3 格式
             oldDir = tdir + '/images'
-        elif fmt == 'epub':
+            if DEBUG: print(_(f'[azw3] Moving images from \n {oldDir} \nto \n {newDir}'))
+            shutil.move(oldDir, newDir)
+
+        elif fmt == 'epub':     # 处理 epub 格式
             oldDir = tdir + '/OEBPS/Images'
             if not os.path.exists(oldDir):
                 oldDir = tdir + '/Images'       # 有的eoub格式，图片不在/OEBPS/Images/，而是直接在/Images/
-                shutil.move(oldDir, newDir)
-                shutil.move(tdir+'/cover.jpeg', newDir+'/00000.jpeg')   # 并且此时封面图固定为/cover.jpeg
-                return   # 这种epub格式，在本分支内全部处理完成，因而退出
 
-        shutil.move(oldDir, newDir)
+            if DEBUG: print(_(f'[epub] Moving images from \n {oldDir} \nto \n {newDir}'))
+            shutil.move(oldDir, newDir)
+            if os.path.exists(tdir+'/cover.jpeg'):
+                shutil.move(tdir+'/cover.jpeg', newDir+'/00000.jpeg')
 
         return
 
