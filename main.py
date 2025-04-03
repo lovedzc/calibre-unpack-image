@@ -3,6 +3,8 @@ try:
 except ImportError:
     from PyQt4.Qt import Qt, QDialog, QPushButton, QLabel, QDialogButtonBox, QGridLayout, QSizePolicy, QFileDialog,QLineEdit
 
+import os
+import shutil
 from calibre.utils.config import JSONConfig
 
 prefs = JSONConfig('plugins/unpack_image')
@@ -142,36 +144,123 @@ class UnpackImageDialog(QDialog):
             # shutil.move(oldDir, newDir)       # 直接从temp目录生成PDF，因而这个移动操作就不要了
 
         elif fmt == 'epub':     # 处理 epub 格式
-            oldDir = tdir + '/OEBPS/Images'
-            if not os.path.exists(oldDir):
-                oldDir = tdir + '/Images'       # 有的eoub格式，图片不在/OEBPS/Images/，而是直接在/Images/
+            oldDir = tdir + '/newImages'
+            process_epub(tdir, oldDir)
 
-            if os.path.exists(tdir+'/cover.jpeg'):
-                shutil.move(tdir+'/cover.jpeg', tdir+'/00000.jpeg')
+            # 改成 根据html文件内容 修改图片，而不是直接复制文件夹
+            # oldDir = tdir + '/OEBPS/Images'
+            # if not os.path.exists(oldDir):
+            #     oldDir = tdir + '/Images'       # 有的eoub格式，图片不在/OEBPS/Images/，而是直接在/Images/
 
-            # shutil.move(oldDir, newDir)       # 直接从temp目录生成PDF，因而这个移动操作就不要了
             # if os.path.exists(tdir+'/cover.jpeg'):
-            #     shutil.move(tdir+'/cover.jpeg', newDir+'/00000.jpeg')
+            #     shutil.move(tdir+'/cover.jpeg', tdir+'/00000.jpeg')
+
+            # # shutil.move(oldDir, newDir)       # 直接从temp目录生成PDF，因而这个移动操作就不要了
+            # # if os.path.exists(tdir+'/cover.jpeg'):
+            # #     shutil.move(tdir+'/cover.jpeg', newDir+'/00000.jpeg')
 
         if DEBUG: print(_(f'[epub] Moving images from \n {oldDir} \nto \n {newDir}'))
 
-        # ---------------------------------------
-        # 以下，将图片转成PDF
-        from PIL import Image
-
-        imagelist = os.listdir(oldDir)
-        images = []
-        for f in imagelist:
-            filepath = f'{oldDir}/{f}'
-            if DEBUG: print(_(f'{f} size = {os.path.getsize(filepath)}'))    # DEBUG文件的尺寸
-            if os.path.getsize(filepath) >= 20000:
-                images.append(Image.open(filepath)) # 打开图片文件
-
-        images[0].save(newDir+'.PDF', "PDF" , quality=95, append_images=images[1:], subsampling=0,  save_all=True, title=title, author=authors, optimize=True)
-        shutil.rmtree(oldDir)   # 删除TEMP图片目录
+        # 将图片转成PDF
+        convert_to_PDF(oldDir, newDir)
 
         return
 
+
+    ###########################################################
+    # 将图片转成PDF
+    ###########################################################
+    def convert_to_PDF(dir, pdfFilepath):
+
+        from PIL import Image
+
+        imagelist = os.listdir(dir)
+        images = []
+        for f in imagelist:
+            filepath = f'{dir}/{f}'
+            if os.path.getsize(filepath) >= 20000:
+                images.append(Image.open(filepath)) # 打开图片文件
+
+        images[0].save(pdfFilepath+'.PDF', "PDF" , quality=95, append_images=images[1:], subsampling=0,  save_all=True, title=title, author=authors, optimize=True)
+        shutil.rmtree(dir)   # 删除TEMP图片目录
+
+
+    ###########################################################
+    # 处理epub文件
+    # 1. 找到content.opf文件，解析<manifest>标签，获取所有内容文件的路径，并按顺序记下来，记录顺序号（index）。
+    # 2. 根据获取到的每个文件，寻找该文件中的img标签，获取图片文件的路径。
+    # 3. 根据获取到的图片文件路径，将该图片保存到newdir，同时将图片文件改为顺序号（index）。
+    ###########################################################
+    def process_epub(epubDir, newImageDir):
+        from xml.etree import ElementTree as ET
+        from bs4 import BeautifulSoup
+
+        # 创建新目录
+        os.makedirs(newImageDir, exist_ok=True)
+
+        # 查找content.opf文件
+        content_opf_path = None
+        for root, dirs, files in os.walk(epubDir):
+            if 'content.opf' in files:
+                content_opf_path = os.path.join(root, 'content.opf')
+                break
+
+        if not content_opf_path:
+            print("content.opf文件未找到")
+            return
+
+        # 解析content.opf文件
+        tree = ET.parse(content_opf_path)
+        root = tree.getroot()
+
+        # 获取manifest标签
+        manifest = root.find('.//{http://www.idpf.org/2007/opf}manifest')
+        if manifest is None:
+            print("manifest标签未找到")
+            return
+
+        # 获取所有内容文件的路径，并按顺序记录下来
+        content_files = []
+        for item in manifest.findall('{http://www.idpf.org/2007/opf}item'):
+            href = item.get('href')
+            if href.endswith('.xhtml') or href.endswith('.html'):
+                content_files.append(href)
+
+        # 处理每个内容文件
+        for index, content_file in enumerate(content_files):
+            content_file_path = os.path.join(os.path.dirname(content_opf_path), content_file)
+            if not os.path.exists(content_file_path):
+                print(f"内容文件{content_file}未找到")
+                continue
+
+            # 解析HTML文件
+            with open(content_file_path, 'r', encoding='utf-8') as f:
+                html_content = f.read()
+
+            # 使用BeautifulSoup解析HTML
+            soup = BeautifulSoup(html_content, 'html.parser')
+            img_tags = soup.find_all('img')
+
+            # 获取图片文件的路径
+            for img_tag in img_tags:
+                img_src = img_tag.get('src')
+                if not img_src:
+                    continue
+
+                # 处理相对路径
+                img_path = os.path.join(os.path.dirname(content_file_path), img_src)
+                if not os.path.exists(img_path):
+                    print(f"图片文件{img_src}未找到")
+                    continue
+
+                # 保存图片到新目录
+                img_filename = f"{index}.png"  # 将图片文件名改为顺序号
+                new_img_path = os.path.join(newImageDir, img_filename)
+                shutil.copy(img_path, new_img_path)
+                print(f"图片已保存到{new_img_path}")
+                
+        return
+                
     def update_info(self):
         self.db = self.gui.current_db
         # Get selected rows
